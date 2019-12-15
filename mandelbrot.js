@@ -7,7 +7,7 @@ window.onload = ()=> {
 
     console.log(w, h)
 
-    let center = new THREE.Vector3(0, 0, 0)
+    let center = { x: w/2, y: h/2}
 
     let zoomFactor = 1
     let rangeFactor = 2
@@ -16,6 +16,10 @@ window.onload = ()=> {
     let maxX = 2
     let minY = -2
     let maxY = 2
+
+    let mousedown = false
+    let mmReduc = Date.now()
+    let storedMM = center
    
     let map = (x, minIn, maxIn, minOut, maxOut) => {
 
@@ -35,7 +39,8 @@ window.onload = ()=> {
 
         console.log('range', minX, maxX, minY, maxY)
     }
-    setRangeByCenter(w / 2, h / 2)
+    setRangeByCenter(center.x, center.y)
+    console.log(center)
 
 
     let container = document.querySelector('#webGL');
@@ -106,8 +111,8 @@ window.onload = ()=> {
                         break
                 }
 
-                let bright = map(n, 0, maxIterations, 0, 1)
-                bright = map(Math.sqrt(bright), 0, 1, 0, 200)
+                // let bright = map(x*y, 0, w*h, 0, 255)
+                bright = 0
 
                 if(n >= maxIterations) 
                     bright = 255
@@ -115,9 +120,9 @@ window.onload = ()=> {
                 // DRAW PIXEL
 
                 let pix = (x + y * w) * 4
-                data[pix + 0] = bright 
-                data[pix + 1] = bright
-                data[pix + 2] = bright
+                data[pix + 0] = bright
+                data[pix + 1] = map(x, 0, w, 0, 255)
+                data[pix + 2] = map(y, 0, h, 0, 255)
                 data[pix + 3] = 255
 
                 // let m = mat.clone()
@@ -155,48 +160,13 @@ window.onload = ()=> {
 
     mandelbrotDraw()
 
-    // let bIn = document.querySelector('#zoomIn')
-    // let bOut = document.querySelector('#zoomOut')
-
-    // bIn.addEventListener('click', ()=> {
-
-    //     setRangeByCenter(0, 0)
-
-    //     zoomFactor *= .1
-
-    //     mandelbrotDraw()
-
-    // }, false)
-
-    // bOut.addEventListener('click', ()=> {
-
-    //     setRangeByCenter(0, 0)
-
-    //     zoomFactor *= 1.1
-        
-    //     mandelbrotDraw()
-
-    // }, false)
-
     container.addEventListener('mousedown', (e)=> {
 
-        console.log('down', e)
+        mousedown = true
 
-        if(e.which == '1' && !e.shiftKey) {
+        storedMM = { x: e.clientX, y: e.clientY }
 
-            zoomFactor *= .5
-        }
-        else if(e.which == '1' && e.shiftKey) {
-
-            zoomFactor *= 1.5
-        }
-        else return
-
-        setRangeByCenter(e.clientX, e.clientY)
-
-        mandelbrotDraw()
-
-        ctx.putImageData(imageData, 0, 0)
+        document.body.style.cursor = 'all-scroll';
 
     }, false)
     
@@ -204,20 +174,57 @@ window.onload = ()=> {
 
         // console.log('up')
 
+        mousedown = false
+
+        document.body.style.cursor = 'default';
+
     }, false)
     
     container.addEventListener('mousemove', (e)=> {
 
         // console.log('move', e.clientY)
 
+        if(Date.now() - mmReduc > 70) {
+            mmReduc = Date.now()
+        }
+        else return
+
+        if(mousedown) {
+
+            let x = e.clientX
+                y = e.clientY
+
+            let c = { x: center.x + (storedMM.x - x), y: center.y + (storedMM.y - y)}
+            console.log(c)
+
+            setRangeByCenter(c.x, c.y)
+
+            mandelbrotDraw()
+
+            ctx.putImageData(imageData, 0, 0)
+
+            storedMM = { x: x, y: y }
+        }
+
     }, false)
     
     container.addEventListener('mousewheel', (e)=> {
 
-        console.log('wheel', e)
+        if(Date.now() - mmReduc > 70) {
+            mmReduc = Date.now()
+        }
+        else return
 
         if(e.deltaY < 0) zoomFactor *= .5
         else if(e.deltaY > 0) zoomFactor *= 1.5
+
+        // let mX = (minX + maxX) / 2
+
+        // let mY = (minY + maxY) / 2
+
+        // console.log(mX, mY)
+ 
+        // setRangeByCenter(map(mX, minX, maxX, 0, w), map(mY, minY, maxY, 0, h))
 
         setRangeByCenter(e.clientX, e.clientY)
 
