@@ -7,7 +7,7 @@ window.onload = ()=> {
 
     console.log(w, h)
 
-    let center = { x: w/2, y: h/2}
+    let center = { x: w/2, y: h/2 }
 
     let zoomFactor = 1
     let rangeFactor = 2
@@ -40,16 +40,17 @@ window.onload = ()=> {
         console.log('range', minX, maxX, minY, maxY)
     }
     setRangeByCenter(center.x, center.y)
-    console.log(center)
 
-
-    let container = document.querySelector('#webGL');
+    let container = document.querySelector('#webGL')
     container.style.width = w + 'px'
     container.style.height = h + 'px'
     let ctx = container.getContext('2d')
 
     ctx.canvas.width = w
     ctx.canvas.height = h
+    
+    let imageData = ctx.getImageData(0, 0, w, h)
+    let data = imageData.data
 
     // let renderer = new THREE.WebGLRenderer({ antialias: true });
     // renderer.setSize(w, h);
@@ -77,8 +78,6 @@ window.onload = ()=> {
     // let mesh = new THREE.Mesh(geo, mat)
     // scene.add(mesh)
 
-    let imageData = ctx.getImageData(0, 0, w, h)
-    let data = imageData.data
 
     let mandelbrotDraw = ()=> {
 
@@ -86,7 +85,7 @@ window.onload = ()=> {
         //     scene.remove(o)
         // })
 
-        let maxIterations = 50
+        let maxIterations = 100
 
         for(let x = 0; x < w; x++) {
 
@@ -107,7 +106,7 @@ window.onload = ()=> {
                     a = A + complexA
                     b = B + complexB
 
-                    if(a + b > 16)
+                    if(a + b > 100)
                         break
                 }
 
@@ -160,6 +159,8 @@ window.onload = ()=> {
 
     mandelbrotDraw()
 
+    ctx.putImageData(imageData, 0, 0)
+
     container.addEventListener('mousedown', (e)=> {
 
         mousedown = true
@@ -195,7 +196,6 @@ window.onload = ()=> {
                 y = e.clientY
 
             let c = { x: center.x + (storedMM.x - x), y: center.y + (storedMM.y - y)}
-            console.log(c)
 
             setRangeByCenter(c.x, c.y)
 
@@ -215,8 +215,12 @@ window.onload = ()=> {
         }
         else return
 
-        if(e.deltaY < 0) zoomFactor *= .5
-        else if(e.deltaY > 0) zoomFactor *= 1.5
+        if(e.deltaY > 0) zoomFactor *= 1.5
+        else if(e.deltaY < 0) zoomFactor *= .5
+
+        console.log(zoomFactor)
+
+        let rect = container.getClientRects()
 
         // let mX = (minX + maxX) / 2
 
@@ -225,8 +229,8 @@ window.onload = ()=> {
         // console.log(mX, mY)
  
         // setRangeByCenter(map(mX, minX, maxX, 0, w), map(mY, minY, maxY, 0, h))
-
-        setRangeByCenter(e.clientX, e.clientY)
+        
+        setRangeByCenter(e.clientX - rect[0].x, e.clientY - rect[0].y)
 
         mandelbrotDraw()
 
@@ -234,5 +238,43 @@ window.onload = ()=> {
 
     }, false)
 
-    ctx.putImageData(imageData, 0, 0)
+    container.addEventListener('touchstart', (e)=> { this.onmousedown(e) }, false)
+    container.addEventListener('touchmove', (e)=> { this.onmousemove(e) }, false)
+    container.addEventListener('touchend', (e)=> { this.onmouseup(e) }, false)
+
+    document.addEventListener('keyup', (e)=> {
+
+        if(e.key == '+') zoomFactor *= .5
+        else if(e.key == '-') zoomFactor *= 1.5
+
+        console.log(zoomFactor)
+
+        setRangeByCenter(center.x, center.y)
+
+        mandelbrotDraw()
+
+        ctx.putImageData(imageData, 0, 0)
+
+    }, false)
+
+    window.onresize = () => {
+
+        w = window.innerHeight
+        h = window.innerHeight
+
+        container.style.width = w + 'px'
+        container.style.height = h + 'px'
+        ctx = container.getContext('2d')
+
+        ctx.canvas.width = w
+        ctx.canvas.height = h
+
+        imageData = ctx.getImageData(0, 0, w, h)
+        data = imageData.data
+        center = { x: w/2, y: h/2 }
+
+        mandelbrotDraw()
+
+        ctx.putImageData(imageData, 0, 0)
+    }
 }
